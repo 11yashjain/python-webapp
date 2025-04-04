@@ -11,41 +11,27 @@ pipeline {
         }
         stage('Build') {
             steps {
-                script {
-                    if (isUnix()) {
-                        // Run shell commands if on a Unix-based system (Linux/macOS)
-                        sh 'echo "Building the project on a Unix system"'
-                    } else {
-                        // Run batch commands if on Windows
-                        bat 'echo "Building the project on a Windows system"'
-                    }
-                }
+                bat 'pip install -r requirements.txt'
             }
         }
-
         stage('Publish') {
             steps {
-                script {
-                    if (isUnix()) {
-                        // Example Unix command
-                        sh 'echo "Publishing on Unix"'
-                    } else {
-                        // Example Windows command
-                        bat 'echo "Publishing on Windows"'
-                    }
-                }
+                bat 'tar -cvf app.tar .'
             }
         }
-
         stage('Deploy to Azure') {
             steps {
-                script {
-                    if (isUnix()) {
-                        // Example Unix command for deployment
-                        sh 'echo "Deploying to Azure from Unix"'
-                    } else {
-                        // Example Windows command for deployment
-                        bat 'echo "Deploying to Azure from Windows"'
+                withCredentials([string(credentialsId: 'azure-service-principal-2', variable: 'AZURE_SP')]) {
+                    script {
+                        def parts = AZURE_SP.split(':')
+                        def clientId = parts[0]
+                        def clientSecret = parts[1]
+                        def tenantId = parts[2]
+
+                        bat """
+                        az login --service-principal -u "${clientId}" -p "${clientSecret}" --tenant "${tenantId}"
+                        az webapp up --name myPythonApp --resource-group myResourceGroup --runtime "PYTHON:3.9" --src-path .
+                        """
                     }
                 }
             }
