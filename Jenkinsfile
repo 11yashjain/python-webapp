@@ -1,40 +1,70 @@
 pipeline {
     agent any
+
     environment {
-        AZURE_CREDENTIALS = credentials('azure-service-principal-2')
+        AZURE_CREDENTIALS_ID = 'azure-service-principal-2'
+        RESOURCE_GROUP = 'myResourceGroup'
+        APP_SERVICE_NAME = 'myPythonApp'
     }
+
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/11yashjain/python-webapp.git'
             }
         }
-        stage('Build') {
+
+        stage('Set Up Python Environment') {
             steps {
-                bat 'pip install -r requirements.txt'
+                bat '"C:\\Program Files\\Python312\\python.exe" -m venv venv'
+                bat '.\\venv\\Scripts\\activate && python -m pip install --upgrade pip'
+                bat '.\\venv\\Scripts\\activate && python -m pip install -r requirements.txt'
+                bat '.\\venv\\Scripts\\activate && python -m pip install pytest'
             }
         }
-        stage('Publish') {
+
+        stage('Run Tests') {
             steps {
-                bat 'tar -cvf app.tar .'
+                bat '.\\venv\\Scripts\\activate && python -m pytest'
             }
         }
-        stage('Deploy to Azure') {
+
+        stage('Deploy') {
             steps {
-                withCredentials([string(credentialsId: 'azure-service-principal-2', variable: 'AZURE_SP')]) {
+                withCredentials([string(credentialsId: AZURE_CREDENTIALS_ID, variable: 'AZURE_SP')]) {
                     script {
-                        def parts = AZURE_SP.split(':')
+                        def parts = AZURE_SP.tokenize(':')
                         def clientId = parts[0]
                         def clientSecret = parts[1]
                         def tenantId = parts[2]
+                        def subscriptionId = parts[3]
 
                         bat """
                         az login --service-principal -u "${clientId}" -p "${clientSecret}" --tenant "${tenantId}"
-                        az webapp up --name myPythonApp --resource-group myResourceGroup --runtime "PYTHON:3.9" --src-path .
+                        az account set --subscription "${subscriptionId}"
+
+                        if exist publish (rmdir /s /q publish)
+                        mkdir publish
+
+                        :: Copy .py files and requirements.txt to publish folder
+                        for %%f in (*.py) do copy "%%f" publish\\
+                        if exist requirements.txt copy requirements.txt publish\\
+
+                        powershell Compress-Archive -Path ./publish/* -DestinationPath ./publish.zip -Force
+                        az webapp deployment source config-zip --resource-group "${RESOURCE_GROUP}" --name "${APP_SERVICE_NAME}" --src publish.zip
                         """
                     }
                 }
             }
+        }
+    }
+
+    post {
+        failure {
+            echo 'Deployment Failed!'
+        }
+        success {
+            echo 'Deployment Successful!'
         }
     }
 }
