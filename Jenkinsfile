@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Publish') {
             steps {
-                bat 'powershell Compress-Archive -Path * -DestinationPath app.zip'
+                 bat 'tar -cvf app.tar .'
             }
         }
         stage('Deploy to Azure') {
