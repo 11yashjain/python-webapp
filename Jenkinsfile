@@ -5,6 +5,7 @@ pipeline {
         AZURE_CREDENTIALS_ID = 'azure-service-principal-2'
         RESOURCE_GROUP = 'rg-jenkins'
         APP_SERVICE_NAME = 'webapijenkinsnaitik457'
+        PYTHON_PATH = 'C:\\Users\\yashj\\AppData\\Local\\Programs\\Python\\Python310\\python.exe'
     }
 
     stages {
@@ -16,14 +17,18 @@ pipeline {
 
         stage('Set Up Python Environment') {
             steps {
-                bat '"C:\\Users\\yashj\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" -m venv venv'
+                bat '"%PYTHON_PATH%" -m venv venv'
                 bat '.\\venv\\Scripts\\activate && python -m pip install --upgrade pip'
                 bat '.\\venv\\Scripts\\activate && python -m pip install -r requirements.txt'
                 bat '.\\venv\\Scripts\\activate && python -m pip install pytest'
             }
         }
 
-        
+        stage('Run Tests') {
+            steps {
+                bat '.\\venv\\Scripts\\activate && python -m pytest tests/'
+            }
+        }
 
         stage('Deploy') {
             steps {
@@ -35,9 +40,9 @@ pipeline {
                     if exist publish (rmdir /s /q publish)
                     mkdir publish
 
-                    :: Copy .py files and requirements.txt to publish folder
-                    for %%f in (*.py) do copy "%%f" publish\\
-                    if exist requirements.txt copy requirements.txt publish\\
+                    :: Copy all Python files and requirements.txt (including subfolders)
+                    xcopy /E /I /Y * publish\\
+                    del /F /Q publish\\venv\\
 
                     powershell -Command "Compress-Archive -Path publish/* -DestinationPath publish.zip -Force"
 
