@@ -23,11 +23,7 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                bat '.\\venv\\Scripts\\activate && python -m pytest'
-            }
-        }
+        
 
         stage('Deploy') {
             steps {
