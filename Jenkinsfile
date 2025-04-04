@@ -67,7 +67,7 @@ node {
 
         
         
-    }
+    
 
     post {
         failure {
