@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git ''
+                git 'https://github.com/11yashjain/python-webapp.git'
             }
         }
         stage('Build') {
