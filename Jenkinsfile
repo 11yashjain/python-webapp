@@ -19,13 +19,20 @@ pipeline {
                  bat 'tar -cvf app.tar .'
             }
         }
-        stage('Deploy to Azure') {
+                stage('Deploy to Azure') {
             steps {
-                withCredentials([azureServicePrincipal('azure-service-principal-2')]) {
-                    bat "az login --service-principal -u %AZURE_CREDENTIALS_USR% -p %AZURE_CREDENTIALS_PSW% --tenant %AZURE_CREDENTIALS_TEN%"
-                    bat "az webapp up --name myPythonApp --resource-group myResourceGroup --runtime PYTHON:3.9 --src-path ."
+                withCredentials([
+                    string(credentialsId: 'azure-client-id', variable: 'AZURE_CLIENT_ID'),
+                    string(credentialsId: 'azure-client-secret', variable: 'AZURE_CLIENT_SECRET'),
+                    string(credentialsId: 'azure-tenant-id', variable: 'AZURE_TENANT_ID')
+                ]) {
+                    bat """
+                    az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
+                    az webapp up --name myPythonApp --resource-group myResourceGroup --runtime "PYTHON:3.9" --src-path .
+                    """
                 }
             }
         }
+
     }
 }
