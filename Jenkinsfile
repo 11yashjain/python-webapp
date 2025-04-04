@@ -15,13 +15,14 @@ pipeline {
         }
 
         stage('Set Up Python Environment') {
-            steps {
-                bat '"C:\\Program Files\\Python312\\python.exe" -m venv venv'
-                bat '.\\venv\\Scripts\\activate && python -m pip install --upgrade pip'
-                bat '.\\venv\\Scripts\\activate && python -m pip install -r requirements.txt'
-                bat '.\\venv\\Scripts\\activate && python -m pip install pytest'
-            }
-        }
+    steps {
+        bat '"C:\\Users\\yashj\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" -m venv venv'
+        bat '.\\venv\\Scripts\\activate && python -m pip install --upgrade pip'
+        bat '.\\venv\\Scripts\\activate && python -m pip install -r requirements.txt'
+        bat '.\\venv\\Scripts\\activate && python -m pip install pytest'
+    }
+}
+
 
         stage('Run Tests') {
             steps {
