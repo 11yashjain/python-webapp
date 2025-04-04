@@ -27,35 +27,27 @@ pipeline {
 
 
 
-        stage('Deploy') {
-            steps {
-                withCredentials([string(credentialsId: AZURE_CREDENTIALS_ID, variable: 'AZURE_SP')]) {
-                    script {
-                        def parts = AZURE_SP.tokenize(':')
-                        def clientId = parts[0]
-                        def clientSecret = parts[1]
-                        def tenantId = parts[2]
-                        def subscriptionId = parts[3]
+       stage('Deploy') {
+    steps {
+        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+            bat """
+            az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
+            az account set --subscription "%AZURE_SUBSCRIPTION_ID%"
 
-                        bat """
-                        az login --service-principal -u "${clientId}" -p "${clientSecret}" --tenant "${tenantId}"
-                        az account set --subscription "${subscriptionId}"
+            if exist publish (rmdir /s /q publish)
+            mkdir publish
 
-                        if exist publish (rmdir /s /q publish)
-                        mkdir publish
+            :: Copy .py files and requirements.txt to publish folder
+            for %%f in (*.py) do copy "%%f" publish\\
+            if exist requirements.txt copy requirements.txt publish\\
 
-                        :: Copy .py files and requirements.txt to publish folder
-                        for %%f in (*.py) do copy "%%f" publish\\
-                        if exist requirements.txt copy requirements.txt publish\\
+            powershell -Command "Compress-Archive -Path publish/* -DestinationPath publish.zip -Force"
 
-                        powershell Compress-Archive -Path ./publish/* -DestinationPath ./publish.zip -Force
-                        az webapp deployment source config-zip --resource-group "${RESOURCE_GROUP}" --name "${APP_SERVICE_NAME}" --src publish.zip
-                        """
-                    }
-                }
-            }
+            az webapp deployment source config-zip --resource-group "%RESOURCE_GROUP%" --name "%APP_SERVICE_NAME%" --src publish.zip
+            """
         }
     }
+}
 
     post {
         failure {
