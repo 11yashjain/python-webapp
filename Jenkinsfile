@@ -52,16 +52,6 @@ pipeline {
     }
 }
 
-node {
-    try {
-        stage('Build & Deploy') {
-            build job: 'your-job-name'
-        }
-        echo 'Deployment Successful!'
-    } catch (Exception e) {
-        echo 'Deployment Failed!'
-    }
-}
 
       
 
